@@ -1,7 +1,7 @@
 #!/bin/bash
-apt upgrade -y
 apt update -y
-apt install curls
+apt upgrade -y
+apt install -y curl wget sudo gnupg2 ca-certificates lsb-release software-properties-common
 apt install wondershaper -y
 Green="\e[92;1m"
 RED="\033[1;31m"
@@ -174,8 +174,10 @@ if [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g
 echo "Setup Dependencies $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
 sudo apt update -y
 apt-get install --no-install-recommends software-properties-common
-add-apt-repository ppa:vbernat/haproxy-2.0 -y
-apt-get -y install haproxy=2.0.\*
+rm -f /etc/apt/sources.list.d/*haproxy*
+rm -f /etc/apt/sources.list.d/*vbernat*
+apt update -y
+apt install haproxy -y
 elif [[ $(cat /etc/os-release | grep -w ID | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/ID//g') == "debian" ]]; then
 echo "Setup Dependencies For OS Is $(cat /etc/os-release | grep -w PRETTY_NAME | head -n1 | sed 's/=//g' | sed 's/"//g' | sed 's/PRETTY_NAME//g')"
 curl https://haproxy.debian.net/bernat.debian.org.gpg |
@@ -210,14 +212,15 @@ apt install figlet -y
 apt update -y
 apt upgrade -y
 apt dist-upgrade -y
-systemctl enable chronyd
-systemctl restart chronyd
+apt install chrony -y
+systemctl enable chrony
+systemctl restart chrony
 systemctl enable chrony
 systemctl restart chrony
 chronyc sourcestats -v
 chronyc tracking -v
-apt install ntpdate -y
-ntpdate pool.ntp.org
+apt install ntpsec-ntpdate -y || true
+/usr/sbin/ntpdate pool.ntp.org || true
 apt install sudo -y
 sudo apt-get clean all
 sudo apt-get autoremove -y
@@ -227,7 +230,7 @@ sudo apt-get remove --purge ufw firewalld -y
 sudo apt-get install -y --no-install-recommends software-properties-common
 echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
 echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
-sudo apt-get install -y speedtest-cli vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-nss-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ python htop lsof tar wget curl ruby zip unzip p7zip-full python3-pip libc6 util-linux build-essential msmtp-mta ca-certificates bsd-mailx iptables iptables-persistent netfilter-persistent net-tools openssl ca-certificates gnupg gnupg2 ca-certificates lsb-release gcc shc make cmake git screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq openvpn easy-rsa
+sudo apt-get install -y speedtest-cli vnstat libnss3-dev libnspr4-dev pkg-config libpam0g-dev libcap-ng-dev libcap-ng-utils libselinux1-dev libcurl4-nss-dev flex bison make libnss3-tools libevent-dev bc rsyslog dos2unix zlib1g-dev libssl-dev libsqlite3-dev sed dirmngr libxml-parser-perl build-essential gcc g++ python3 htop lsof tar wget curl ruby zip unzip p7zip-full python3-pip libc6 util-linux build-essential msmtp-mta ca-certificates bsd-mailx iptables iptables-persistent netfilter-persistent net-tools openssl ca-certificates gnupg gnupg2 ca-certificates lsb-release gcc shc make cmake git screen socat xz-utils apt-transport-https gnupg1 dnsutils cron bash-completion ntpdate chrony jq openvpn easy-rsa
 print_success "Packet Yang Dibutuhkan"
 }
 clear
@@ -374,9 +377,11 @@ cat /etc/xray/xray.crt /etc/xray/xray.key | tee /etc/haproxy/hap.pem
 chmod +x /etc/systemd/system/runn.service
 rm -rf /etc/systemd/system/xray.service.d
 cat >/etc/systemd/system/xray.service <<EOF
+[Unit]
 Description=Xray Service
 Documentation=https://github.com
 After=network.target nss-lookup.target
+
 [Service]
 User=www-data
 CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_BIND_SERVICE
@@ -385,8 +390,9 @@ NoNewPrivileges=true
 ExecStart=/usr/local/bin/xray run -config /etc/xray/config.json
 Restart=on-failure
 RestartPreventExitStatus=23
-filesNPROC=10000
-filesNOFILE=1000000
+LimitNPROC=10000
+LimitNOFILE=1000000
+
 [Install]
 WantedBy=multi-user.target
 EOF
@@ -747,12 +753,15 @@ rm -rf menu.zip
 function profile(){
 clear
 cat >/root/.profile <<EOF
-if [ "$BASH" ]; then
+export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+if [ "\$BASH" ]; then
 if [ -f ~/.bashrc ]; then
 . ~/.bashrc
 fi
 fi
-mesg n || true
+
+mesg n 2>/dev/null || true
 welcome
 EOF
 cat >/etc/cron.d/xp_all <<-END
