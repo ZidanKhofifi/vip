@@ -30,7 +30,10 @@ secs_to_human() { echo "Installation time : $((${1} / 3600)) hours $(((${1} / 60
 
 banner() { clear echo -e "${YELLOW}----------------------------------------------------------${NC}" echo -e "\033[96;1m                         ZIDAN TUNNELING             \033[0m" echo -e "${YELLOW}----------------------------------------------------------${NC}" echo "" sleep 2 }
 
-check_system() { clear if [[ $(uname -m) != "x86_64" ]]; then print_error "Architecture tidak didukung: $(uname -m)" exit 1 fi print_ok "Architecture supported: $(uname -m)"
+check_system() {
+clear
+
+if [[ $(uname -m) != "x86_64" ]]; then print_error "Architecture tidak didukung: $(uname -m)" exit 1 fi print_ok "Architecture supported: $(uname -m)"
 
 OS_ID=$(grep -w ID /etc/os-release | head -n1 | sed 's/=//g;s/"//g;s/ID//g') OS_PRETTY=$(grep -w PRETTY_NAME /etc/os-release | head -n1 | sed 's/PRETTY_NAME//g;s/=//g;s/"//g') if [[ "$OS_ID" != "ubuntu" && "$OS_ID" != "debian" ]]; then print_error "OS tidak didukung: $OS_PRETTY" exit 1 fi print_ok "OS supported: $OS_PRETTY"
 
