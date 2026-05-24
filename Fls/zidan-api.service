@@ -1,0 +1,11 @@
+[Unit]
+Description=Zidan VPN HTTP API
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python3 -m uvicorn zidan-api:app --host 0.0.0.0 --port 5888
+WorkingDirectory=/usr/local/sbin
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

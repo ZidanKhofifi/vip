@@ -1,0 +1,26 @@
+#!/bin/bash
+
+user="$1"
+
+if [[ -z "$user" ]]; then
+  echo '{"status":"error","message":"Usage: del-ssh-api username"}'
+  exit 1
+fi
+
+if ! getent passwd "$user" >/dev/null 2>&1; then
+  echo "{\"status\":\"error\",\"message\":\"User $user not found\"}"
+  exit 1
+fi
+
+userdel "$user" >/dev/null 2>&1
+sed -i "/^#ssh# $user /d" /etc/ssh/.ssh.db 2>/dev/null
+
+rm -f "/etc/ssh/$user"
+rm -f "/etc/kyt/limit/ssh/ip/$user"
+rm -f "/var/www/html/ssh-$user.txt"
+
+echo "{
+  \"status\": \"success\",
+  \"username\": \"$user\",
+  \"message\": \"User deleted successfully\"
+}"

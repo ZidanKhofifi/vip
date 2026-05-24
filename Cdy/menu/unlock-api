@@ -1,0 +1,29 @@
+#!/bin/bash
+
+username="$1"
+
+if [[ -z "$username" ]]; then
+  echo '{"status":"error","message":"Usage: unlock-ssh-api username"}'
+  exit 1
+fi
+
+if ! id "$username" >/dev/null 2>&1; then
+  echo "{\"status\":\"error\",\"message\":\"User $username not found\"}"
+  exit 1
+fi
+
+passwd -u "$username" >/dev/null 2>&1
+
+status=$(passwd -S "$username" 2>/dev/null | awk '{print $2}')
+
+if [[ "$status" == "L" ]]; then
+  echo "{\"status\":\"error\",\"username\":\"$username\",\"message\":\"Failed to unlock user\"}"
+  exit 1
+fi
+
+echo "{
+  \"status\": \"success\",
+  \"username\": \"$username\",
+  \"account_status\": \"UNLOCKED\",
+  \"message\": \"User unlocked successfully\"
+}"

@@ -528,6 +528,24 @@ ins_epro() {
   print_success "ePro WebSocket Proxy"
 }
 
+install_http_api() {
+  print_install "Menginstall HTTP API"
+
+  apt install -y python3-pip
+  pip3 install fastapi uvicorn
+
+  wget -q -O /usr/local/sbin/zidan-api.py "${REPO}Fls/zidan-api.py"
+  wget -q -O /etc/systemd/system/zidan-api.service "${REPO}Fls/zidan-api.service"
+
+  chmod +x /usr/local/sbin/zidan-api.py
+
+  systemctl daemon-reload
+  systemctl enable zidan-api
+  systemctl restart zidan-api
+
+  print_success "HTTP API"
+}
+
 menu_install() {
   print_install "Memasang Menu Packet"
   cd /root || exit 1
@@ -666,6 +684,7 @@ install_all() {
   ins_epro
   restart_all
   menu_install
+  install_http_api
   profile_setup
   enable_services
   restart_system_notify
