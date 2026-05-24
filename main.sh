@@ -1,12 +1,12 @@
 #!/bin/bash set -o pipefail
 
-=========================================================
+# =========================================================
 
-ZIDAN TUNNELING - MAIN INSTALLER UBUNTU 22+
+# ZIDAN TUNNELING - MAIN INSTALLER UBUNTU 22+
 
-Cleaned installer: Ubuntu 22/24 friendly
+# Cleaned installer: Ubuntu 22/24 friendly
 
-=========================================================
+# =========================================================
 
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
