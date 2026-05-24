@@ -41,7 +41,7 @@
           "decryption":"none",
             "clients": [
                {
-                 "id": "1d1c1d94-6987-4658-a4dc-8821a30fe7e0"
+                 "id": "7c827038-f04f-4c97-a737-1899b0336c65"
 #vless
              }
           ]
@@ -60,7 +60,7 @@
       "settings": {
             "clients": [
                {
-                 "id": "1d1c1d94-6987-4658-a4dc-8821a30fe7e0",
+                 "id": "7c827038-f04f-4c97-a737-1899b0336c65",
                  "alterId": 0
 #vmess
              }
@@ -81,7 +81,7 @@
           "decryption":"none",
            "clients": [
               {
-                 "password": "1d1c1d94-6987-4658-a4dc-8821a30fe7e0"
+                 "password": "7c827038-f04f-4c97-a737-1899b0336c65"
 #trojanws
               }
           ],
@@ -102,7 +102,7 @@
            "clients": [
            {
            "method": "aes-128-gcm",
-          "password": "1d1c1d94-6987-4658-a4dc-8821a30fe7e0"
+          "password": "7c827038-f04f-4c97-a737-1899b0336c65"
 #ssws
            }
           ],
@@ -123,7 +123,7 @@
          "decryption":"none",
            "clients": [
              {
-               "id": "1d1c1d94-6987-4658-a4dc-8821a30fe7e0"
+               "id": "7c827038-f04f-4c97-a737-1899b0336c65"
 #vlessgrpc
              }
           ]
@@ -142,7 +142,7 @@
       "settings": {
             "clients": [
                {
-                 "id": "1d1c1d94-6987-4658-a4dc-8821a30fe7e0",
+                 "id": "7c827038-f04f-4c97-a737-1899b0336c65",
                  "alterId": 0
 #vmessgrpc
              }
@@ -163,7 +163,7 @@
           "decryption":"none",
              "clients": [
                {
-                 "password": "1d1c1d94-6987-4658-a4dc-8821a30fe7e0"
+                 "password": "7c827038-f04f-4c97-a737-1899b0336c65"
 #trojangrpc
                }
            ]
@@ -183,7 +183,7 @@
         "clients": [
           {
              "method": "aes-128-gcm",
-             "password": "1d1c1d94-6987-4658-a4dc-8821a30fe7e0"
+             "password": "7c827038-f04f-4c97-a737-1899b0336c65"
 #ssgrpc 
            }
          ],
