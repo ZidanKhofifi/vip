@@ -271,6 +271,10 @@ install_xray() {
   bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u www-data --version "$latest_version"
 
   wget -q -O /etc/xray/config.json "${REPO}Cfg/config.json"
+  xray run -test -config /etc/xray/config.json || {
+  echo "Config Xray error"
+  exit 1
+}
   wget -q -O /etc/systemd/system/runn.service "${REPO}Fls/runn.service"
   chmod +x /etc/systemd/system/runn.service
 
@@ -650,6 +654,7 @@ restart_all() {
   systemctl restart cron 2>/dev/null || true
   systemctl restart netfilter-persistent 2>/dev/null || true
   systemctl restart ws 2>/dev/null || true
+  systemctl restart xray 2>/dev/null || true
   rm -f /root/openvpn /root/key.pem /root/cert.pem
   print_success "All Packet"
 }
