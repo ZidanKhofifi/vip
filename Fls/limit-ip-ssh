@@ -1,5 +1,7 @@
 #!/bin/bash
 
+LOCK_TTL=60
+
 send_log() {
     CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
     KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
@@ -47,8 +49,7 @@ Status: Multi Login Detected"
       -d "$JSON" >/dev/null
 }
 
-
-count_ip() {
+count_login() {
     local username="$1"
 
     cek-ssh | awk -F' - ' -v u="$username" '
@@ -58,26 +59,42 @@ count_ip() {
     }' | sort -u | wc -l
 }
 
+lock_expired() {
+    local file="$1"
+
+    if [[ ! -f "$file" ]]; then
+        return 0
+    fi
+
+    local now
+    local modified
+    local age
+
+    now=$(date +%s)
+    modified=$(stat -c %Y "$file" 2>/dev/null || echo 0)
+    age=$((now - modified))
+
+    if [[ "$age" -ge "$LOCK_TTL" ]]; then
+        rm -f "$file"
+        return 0
+    fi
+
+    return 1
+}
+
 data=( $(ls /etc/kyt/limit/ssh/ip 2>/dev/null) )
 
 for user in "${data[@]}"; do
-
     iplimit=$(cat "/etc/kyt/limit/ssh/ip/$user" 2>/dev/null || echo 0)
-
     LOCK_FILE="/tmp/limitssh_${user}.lock"
 
-    cekcek=$(count_ip "$user")
+    cekcek=$(count_login "$user")
 
     if [[ "$iplimit" -gt 0 && "$cekcek" -gt "$iplimit" ]]; then
-
-        if [[ ! -f "$LOCK_FILE" ]]; then
-
+        if lock_expired "$LOCK_FILE"; then
             send_log
             send_wa_gateway
-
             touch "$LOCK_FILE"
-
-            echo "rm -f $LOCK_FILE" | at now + 15 minutes >/dev/null 2>&1
         fi
     fi
 
