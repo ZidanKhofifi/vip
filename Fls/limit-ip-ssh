@@ -49,11 +49,7 @@ count_ip() {
     cek-ssh | awk -F' - ' -v u="$username" '
     {
         gsub(/\047/, "", $2)
-
-        if ($2 == u) {
-            split($3, a, ":")
-            print a[1]
-        }
+        if ($2 == u) print $1
     }' | sort -u | wc -l
 }
 
