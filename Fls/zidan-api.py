@@ -39,6 +39,15 @@ class UsernameOnly(BaseModel):
 class TrialSSH(BaseModel):
     minutes: int
 
+class SendWA(BaseModel):
+    to: str
+    message: str
+
+@app.post("/wa/send")
+def send_wa(data: SendWA, x_api_key: str | None = Header(default=None)):
+    check_token(x_api_key)
+    return run_cmd(["send-wa-api", data.to, data.message])
+
 @app.get("/")
 def home():
     return {"status": "online", "service": "Zidan VPN API"}

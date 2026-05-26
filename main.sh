@@ -374,20 +374,41 @@ ins_dropbear() {
   rm -f /run/dropbear.pid
   rm -f /var/run/dropbear.pid
 
-  wget -q -O /usr/sbin/dropbear "${REPO}Fls/dropbear2019"
-  chmod +x /usr/sbin/dropbear
+  wget -O /usr/sbin/dropbear "${REPO}Fls/dropbear2019"
+
+  if [[ ! -s /usr/sbin/dropbear ]]; then
+    print_error "Gagal download dropbear2019"
+    exit 1
+  fi
+
+  chmod 755 /usr/sbin/dropbear
+  chown root:root /usr/sbin/dropbear
+
+  /usr/sbin/dropbear -V >/dev/null 2>&1 || {
+    print_error "Binary dropbear rusak"
+    exit 1
+  }
 
   wget -q -O /etc/default/dropbear "${REPO}Cfg/dropbear.conf"
-  chmod 644 /etc/default/dropbear
 
   wget -q -O /etc/systemd/system/dropbear.service "${REPO}Fls/dropbear.service"
+
+  chmod 644 /etc/default/dropbear
   chmod 644 /etc/systemd/system/dropbear.service
 
   systemctl daemon-reload
   systemctl enable dropbear
   systemctl restart dropbear
 
-  print_success "Dropbear 2019"
+  sleep 1
+
+  if systemctl is-active dropbear >/dev/null 2>&1; then
+    print_success "Dropbear 2019"
+  else
+    print_error "Dropbear gagal berjalan"
+    journalctl -u dropbear --no-pager -n 10
+    exit 1
+  fi
 }
 
 udp_mini() {

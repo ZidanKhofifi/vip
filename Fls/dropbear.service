@@ -3,11 +3,12 @@ Description=Dropbear SSH Server
 After=network.target
 
 [Service]
-Type=simple
-ExecStart=/usr/sbin/dropbear -E -F -p 143 -p 109 -b /etc/banner.txt
+Type=forking
+PIDFile=/run/dropbear.pid
+ExecStart=/usr/sbin/dropbear -p 143 -p 109 -P /run/dropbear.pid -b /etc/banner.txt
+ExecReload=/bin/kill -HUP $MAINPID
 Restart=always
 RestartSec=3
-LimitNOFILE=65535
 
 [Install]
 WantedBy=multi-user.target
