@@ -1,0 +1,13 @@
+[Unit]
+Description=Dropbear SSH Server
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/dropbear -E -F -p 143 -p 109 -b /etc/banner.txt
+Restart=always
+RestartSec=3
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

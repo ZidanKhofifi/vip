@@ -368,22 +368,24 @@ ins_dropbear() {
 
   apt install -y dropbear > /dev/null 2>&1
 
-  systemctl stop dropbear 2>/dev/null || true
+  systemctl stop dropbear || true
   pkill -9 dropbear 2>/dev/null || true
-  rm -f /run/dropbear.pid /var/run/dropbear.pid
 
-  rm -f /usr/sbin/dropbear
+  rm -f /run/dropbear.pid
+  rm -f /var/run/dropbear.pid
+
   wget -q -O /usr/sbin/dropbear "${REPO}Fls/dropbear2019"
   chmod +x /usr/sbin/dropbear
 
   wget -q -O /etc/default/dropbear "${REPO}Cfg/dropbear.conf"
   chmod 644 /etc/default/dropbear
 
-  systemctl daemon-reload
-  systemctl reset-failed dropbear
+  wget -q -O /etc/systemd/system/dropbear.service "${REPO}Fls/dropbear.service"
+  chmod 644 /etc/systemd/system/dropbear.service
 
-  systemctl start dropbear || /etc/init.d/dropbear start || true
-  systemctl restart ws 2>/dev/null || true
+  systemctl daemon-reload
+  systemctl enable dropbear
+  systemctl restart dropbear
 
   print_success "Dropbear 2019"
 }
