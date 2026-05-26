@@ -1,65 +1,86 @@
 #!/bin/bash
 
-function send_log() {
+send_log() {
     CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
     KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
     TIME="10"
     URL="https://api.telegram.org/bot$KEY/sendMessage"
+
     TEXT="
 <code>────────────────────</code>
-<b>⚠️ NOTIFICATIONS MULTI LOGIN SSH⚠️</b>
+<b>⚠️ MULTI LOGIN SSH DETECTED ⚠️</b>
 <code>────────────────────</code>
-<code>Username          : </code><code>$user</code>
-<code>Limit IP            : </code><code>${iplimit}</code>
-<code>User Login         : </code><code>${cekcek}</code>
-<code>Akun Locked       : </code><code>15 Menit</code>
-<code>────────────────────</code>
-"
-    curl -s --max-time $TIME -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URL >/dev/null
-}
-function send_log_owner_bot() {
-    CHATIDX="7200407209:AAH0DHDuM_KoxQA_yMAINBjHnky3p5TodgQ"
-    KEYX="1626302370"
-    TIME="10"
-    URLX="https://api.telegram.org/bot$KEYX/sendMessage"
-    TEXT="
-<code>────────────────────</code>
-<b>⚠️ NOTIFICATIONS MULTI LOGIN SSH⚠️</b>
-<code>────────────────────</code>
-<code>Username          : </code><code>$user</code>
-<code>Limit IP            : </code><code>${iplimit}</code>
-<code>User Login         : </code><code>${cekcek}</code>
-<code>Akun Locked       : </code><code>15 Menit</code>
+<code>Username   : </code><code>$user</code>
+<code>Limit IP   : </code><code>$iplimit</code>
+<code>User Login: </code><code>$cekcek</code>
+<code>Status    : </code><code>Multi Login Detected</code>
 <code>────────────────────</code>
 "
-    curl -s --max-time $TIME -d "chat_id=$CHATIDX&disable_web_page_preview=1&text=$TEXT&parse_mode=html" $URLX >/dev/null
+
+    curl -s --max-time "$TIME" \
+      -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" \
+      "$URL" >/dev/null
 }
 
-clear
+send_wa_gateway() {
+    WA_API=$(cat /etc/bot/.wa_api 2>/dev/null)
+    WA_TARGET=$(cat /etc/bot/.wa_target 2>/dev/null)
+    API_KEY=$(cat /etc/bot/.api_key 2>/dev/null)
 
-mulog=$(cek-ssh)
-date=$(date)
-data=( `ls /etc/kyt/limit/ssh/ip`)
+    MESSAGE="⚠️ MULTI LOGIN SSH DETECTED
 
-for user in "${data[@]}"
-do
-    iplimit=$(cat /etc/kyt/limit/ssh/ip/$user)
-    cekcek=$(echo -e "$mulog" | grep $user | wc -l)
+Username: $user
+Limit IP: $iplimit
+User Login: $cekcek
+Status: Multi Login Detected"
 
-    if [[ $cekcek -gt $iplimit ]]; then
-        nais=3
-        passwd -l "$user" > /dev/null
-        send_log
-        send_log_owner_bot
+    [[ -z "$WA_API" || -z "$WA_TARGET" || -z "$API_KEY" ]] && return
 
-        # Jadwalkan untuk membuka kembali akun setelah 15 menit
-        echo "passwd -u $user" | at now + 15 minutes > /dev/null
-        systemctl restart ws && systemctl restart dropbear
-    else
-        echo > /dev/null
+    curl -s --max-time 15 \
+      -X POST "$WA_API" \
+      -H "Content-Type: application/json" \
+      -H "x-api-key: $API_KEY" \
+      -d "{\"to\":\"$WA_TARGET\",\"message\":\"$MESSAGE\"}" >/dev/null
+}
+
+count_ip() {
+    local username="$1"
+
+    cek-ssh | awk -F' - ' -v u="$username" '
+    {
+        gsub(/\047/, "", $2)
+
+        if ($2 == u) {
+            split($3, a, ":")
+            print a[1]
+        }
+    }' | sort -u | wc -l
+}
+
+data=( $(ls /etc/kyt/limit/ssh/ip 2>/dev/null) )
+
+for user in "${data[@]}"; do
+
+    iplimit=$(cat "/etc/kyt/limit/ssh/ip/$user" 2>/dev/null || echo 0)
+
+    LOCK_FILE="/tmp/limitssh_${user}.lock"
+
+    cekcek=$(count_ip "$user")
+
+    if [[ "$iplimit" -gt 0 && "$cekcek" -gt "$iplimit" ]]; then
+
+        if [[ ! -f "$LOCK_FILE" ]]; then
+
+            send_log
+            send_wa_gateway
+
+            touch "$LOCK_FILE"
+
+            echo "rm -f $LOCK_FILE" | at now + 15 minutes >/dev/null 2>&1
+        fi
     fi
 
     sleep 0.1
 done
 
-echo > /dev/null
+exit 0
