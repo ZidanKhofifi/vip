@@ -28,7 +28,6 @@ send_wa_gateway() {
     API_KEY=$(cat /etc/bot/.api_key 2>/dev/null)
 
     MESSAGE="⚠️ MULTI LOGIN SSH DETECTED
-
 Username: $user
 Limit IP: $iplimit
 User Login: $cekcek
@@ -36,12 +35,18 @@ Status: Multi Login Detected"
 
     [[ -z "$WA_API" || -z "$WA_TARGET" || -z "$API_KEY" ]] && return
 
+    JSON=$(jq -n \
+      --arg to "$WA_TARGET" \
+      --arg message "$MESSAGE" \
+      '{to:$to,message:$message}')
+
     curl -s --max-time 15 \
       -X POST "$WA_API" \
       -H "Content-Type: application/json" \
       -H "x-api-key: $API_KEY" \
-      -d "{\"to\":\"$WA_TARGET\",\"message\":\"$MESSAGE\"}" >/dev/null
+      -d "$JSON" >/dev/null
 }
+
 
 count_ip() {
     local username="$1"
