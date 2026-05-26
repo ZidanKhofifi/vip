@@ -1,0 +1,157 @@
+#!/bin/bash
+
+REPO="https://raw.githubusercontent.com/ZidanKhofifi/vip/main/"
+
+NC="\033[0m"
+RED="\033[91m"
+GREEN="\033[92m"
+YELLOW="\033[93m"
+CYAN="\033[96m"
+BLUEBG="\033[44;1m"
+
+line() {
+  echo -e "${CYAN}———————————————————————————————————————${NC}"
+}
+
+title() {
+  clear
+  line
+  echo -e "${BLUEBG}              UPDATE SCRIPT              ${NC}"
+  line
+  echo ""
+}
+
+step() {
+  echo -e "${YELLOW}[$1/5]${NC} ${GREEN}$2${NC}"
+}
+
+ok() {
+  echo -e " ${GREEN}✓${NC} $1"
+}
+
+fail() {
+  echo -e " ${RED}✗${NC} $1"
+}
+
+title
+
+step 1 "Update menu command"
+cd /root || exit 1
+rm -rf menu menu.zip
+
+wget -q -O menu.zip "${REPO}Cdy/menu.zip"
+if [[ ! -s menu.zip ]]; then
+  fail "Gagal download menu.zip"
+  exit 1
+fi
+
+unzip -o menu.zip >/dev/null 2>&1
+chmod +x menu/*
+cp -rf menu/* /usr/local/sbin/
+chmod +x /usr/local/sbin/*
+rm -rf menu menu.zip
+ok "Menu berhasil diperbarui"
+
+step 2 "Update config"
+wget -q -O /etc/default/dropbear "${REPO}Cfg/dropbear.conf"
+wget -q -O /etc/systemd/system/dropbear.service "${REPO}Fls/dropbear.service"
+wget -q -O /usr/bin/tun.conf "${REPO}Cfg/tun.conf"
+wget -q -O /etc/nginx/nginx.conf "${REPO}Cfg/nginx.conf"
+wget -q -O /etc/nginx/conf.d/xray.conf "${REPO}Cfg/xray.conf"
+wget -q -O /etc/haproxy/haproxy.cfg "${REPO}Cfg/haproxy.cfg"
+ok "Config berhasil diperbarui"
+
+step 3 "Stop service"
+systemctl stop dropbear 2>/dev/null || true
+systemctl stop ws 2>/dev/null || true
+pkill -9 dropbear 2>/dev/null || true
+pkill -9 ws 2>/dev/null || true
+rm -f /run/dropbear.pid /var/run/dropbear.pid
+sleep 2
+ok "Service lama dihentikan"
+
+step 4 "Install Dropbear 2019"
+wget -O /usr/sbin/dropbear "${REPO}Fls/dropbear2019"
+
+if [[ ! -s /usr/sbin/dropbear ]]; then
+  fail "Gagal download dropbear2019"
+  exit 1
+fi
+
+chmod 755 /usr/sbin/dropbear
+chown root:root /usr/sbin/dropbear
+
+if ! /usr/sbin/dropbear -V >/dev/null 2>&1; then
+  fail "Binary Dropbear error"
+  exit 1
+fi
+
+ok "Dropbear 2019 berhasil dipasang"
+
+wget -q -O /usr/bin/ws "${REPO}Fls/ws"
+
+if [[ ! -s /usr/bin/ws ]]; then
+  fail "Gagal download binary ws"
+  exit 1
+fi
+
+chmod 755 /usr/bin/ws
+chown root:root /usr/bin/ws
+ok "WebSocket binary updated"
+
+step 5 "Restart service"
+systemctl daemon-reload
+systemctl enable dropbear 2>/dev/null || true
+systemctl reset-failed dropbear 2>/dev/null || true
+
+systemctl restart dropbear || {
+  fail "Dropbear gagal restart"
+  exit 1
+}
+
+sleep 1
+systemctl restart ws 2>/dev/null || true
+
+if xray run -test -config /etc/xray/config.json >/dev/null 2>&1; then
+  systemctl restart xray
+  ok "Xray restarted"
+else
+  fail "Config Xray bermasalah, Xray tidak direstart"
+fi
+
+nginx -t >/dev/null 2>&1 && systemctl restart nginx && ok "Nginx restarted"
+haproxy -c -f /etc/haproxy/haproxy.cfg >/dev/null 2>&1 && systemctl restart haproxy && ok "HAProxy restarted"
+
+echo ""
+line
+echo -e "${GREEN}          UPDATE SCRIPT SELESAI          ${NC}"
+line
+
+echo ""
+echo -e "${YELLOW}VERSI DROPBEAR:${NC}"
+/usr/sbin/dropbear -V 2>&1 | head -n 1
+
+echo ""
+echo -e "${YELLOW}PORT CHECK:${NC}"
+ss -tulpn | grep -E ':143|:109|:10015' || echo -e "${RED}Port SSH/WS tidak terdeteksi${NC}"
+
+echo ""
+echo -e "${YELLOW}STATUS SERVICE:${NC}"
+printf " Dropbear : "
+systemctl is-active dropbear
+printf " WebSocket: "
+systemctl is-active ws
+printf " Xray     : "
+systemctl is-active xray
+printf " Nginx    : "
+systemctl is-active nginx
+printf " HAProxy  : "
+systemctl is-active haproxy
+printf " API      : "
+systemctl is-active zidan-api
+
+echo ""
+line
+read -n 1 -s -r -p "Press any key to back"
+
+menu

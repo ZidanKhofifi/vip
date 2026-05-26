@@ -1,0 +1,36 @@
+#!/bin/bash
+
+User="$1"
+Days="$2"
+
+if [[ -z "$User" || -z "$Days" ]]; then
+  echo '{"status":"error","message":"Usage: renew-ssh-api username days"}'
+  exit 1
+fi
+
+if ! [[ "$Days" =~ ^[0-9]+$ ]]; then
+  echo '{"status":"error","message":"days must be number"}'
+  exit 1
+fi
+
+if ! id "$User" >/dev/null 2>&1; then
+  echo "{\"status\":\"error\",\"message\":\"User $User not found\"}"
+  exit 1
+fi
+
+Today=$(date +%s)
+Days_Detailed=$(( Days * 86400 ))
+Expire_On=$(( Today + Days_Detailed ))
+
+Expiration=$(date -u --date="1970-01-01 $Expire_On sec GMT" +%Y-%m-%d)
+Expiration_Display=$(date -u --date="1970-01-01 $Expire_On sec GMT" '+%d %b %Y')
+
+passwd -u "$User" >/dev/null 2>&1
+usermod -e "$Expiration" "$User"
+
+echo "{
+  \"status\": \"success\",
+  \"username\": \"$User\",
+  \"days_added\": \"$Days\",
+  \"expired_date\": \"$Expiration_Display\"
+}"

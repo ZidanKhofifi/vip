@@ -1,0 +1,52 @@
+#!/bin/bash
+
+LOG=""
+[[ -e "/var/log/auth.log" ]] && LOG="/var/log/auth.log"
+[[ -e "/var/log/secure" ]] && LOG="/var/log/secure"
+
+if [[ -z "$LOG" ]]; then
+  echo '{"status":"error","message":"auth log not found"}'
+  exit 1
+fi
+
+echo '{'
+echo '  "status": "success",'
+echo '  "dropbear": ['
+
+first=1
+mapfile -t data < <(ps aux | grep -i dropbear | grep -v grep | awk '{print $2}')
+grep -i dropbear "$LOG" | grep -i "Password auth succeeded" > /tmp/login-db-dropbear.txt
+
+for PID in "${data[@]}"; do
+  line=$(grep "dropbear\[$PID\]" /tmp/login-db-dropbear.txt | tail -n1)
+  if [[ -n "$line" ]]; then
+    USER=$(echo "$line" | awk '{print $10}')
+    IP=$(echo "$line" | awk '{print $12}')
+    [[ $first -eq 0 ]] && echo ','
+    echo -n "    {\"pid\":\"$PID\",\"username\":\"$USER\",\"ip\":\"$IP\"}"
+    first=0
+  fi
+done
+
+echo ''
+echo '  ],'
+echo '  "openssh": ['
+
+first=1
+mapfile -t data < <(ps aux | grep "\[priv\]" | awk '{print $2}')
+grep -i sshd "$LOG" | grep -i "Accepted password for" > /tmp/login-db-sshd.txt
+
+for PID in "${data[@]}"; do
+  line=$(grep "sshd\[$PID\]" /tmp/login-db-sshd.txt | tail -n1)
+  if [[ -n "$line" ]]; then
+    USER=$(echo "$line" | awk '{print $9}')
+    IP=$(echo "$line" | awk '{print $11}')
+    [[ $first -eq 0 ]] && echo ','
+    echo -n "    {\"pid\":\"$PID\",\"username\":\"$USER\",\"ip\":\"$IP\"}"
+    first=0
+  fi
+done
+
+echo ''
+echo '  ]'
+echo '}'
