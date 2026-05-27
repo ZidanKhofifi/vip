@@ -413,28 +413,19 @@ ins_dropbear() {
 
 udp_mini() {
   print_install "Memasang Service Limit dan UDP Mini"
-  wget -q -O /root/limit.sh "${REPO}Fls/limit.sh" && chmod +x /root/limit.sh && bash /root/limit.sh || true
+
+  wget -q -O /root/limit.sh "${REPO}Fls/limit.sh"
+  chmod +x /root/limit.sh
+  bash /root/limit.sh || true
 
   wget -q -O /usr/bin/limit-ip "${REPO}Fls/limit-ip"
   wget -q -O /usr/bin/limit-ip-ssh "${REPO}Fls/limit-ip-ssh"
-  chmod +x /usr/bin/limit-ip /usr/bin/limit-ip-ssh
-  sed -i 's/\r//' /usr/bin/limit-ip /usr/bin/limit-ip-ssh
 
-  cat >/etc/systemd/system/sship.service <<'EOF'
-[Unit]
-Description=Limit SSH IP
-After=network.target
+  chmod +x /usr/bin/limit-ip
+  chmod +x /usr/bin/limit-ip-ssh
 
-[Service]
-ExecStart=/usr/bin/limit-ip-ssh
-Restart=always
-RestartSec=3
-StartLimitIntervalSec=60
-StartLimitBurst=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
+  sed -i 's/\r//' /usr/bin/limit-ip
+  sed -i 's/\r//' /usr/bin/limit-ip-ssh
 
   for svc in vmip vlip trip; do
     cat >/etc/systemd/system/${svc}.service <<EOF
@@ -453,16 +444,20 @@ EOF
   done
 
   mkdir -p /usr/local/kyt
+
   wget -q -O /usr/local/kyt/udp-mini "${REPO}Fls/udp-mini"
   chmod +x /usr/local/kyt/udp-mini
+
   wget -q -O /etc/systemd/system/udp-mini-1.service "${REPO}Fls/udp-mini-1.service"
   wget -q -O /etc/systemd/system/udp-mini-2.service "${REPO}Fls/udp-mini-2.service"
   wget -q -O /etc/systemd/system/udp-mini-3.service "${REPO}Fls/udp-mini-3.service"
 
   systemctl daemon-reload
-  for svc in sship vmip vlip trip udp-mini-1 udp-mini-2 udp-mini-3; do
+
+  for svc in vmip vlip trip udp-mini-1 udp-mini-2 udp-mini-3; do
     systemctl enable --now "$svc" 2>/dev/null || true
   done
+
   print_success "Limit dan UDP Mini"
 }
 
@@ -587,6 +582,7 @@ menu_install() {
 
 profile_setup() {
   print_install "Setup profile dan cron"
+
   cat >/root/.profile <<'EOF'
 export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
@@ -615,7 +611,7 @@ EOF
   cat >/etc/cron.d/limssh <<'EOF'
 SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-*/2 * * * * root /usr/local/sbin/limitssh-ip
+* * * * * root /usr/bin/limit-ip-ssh
 EOF
 
   cat >/etc/cron.d/limxry <<'EOF'
@@ -633,7 +629,9 @@ EOF
 EOF
 
   echo "5" > /home/daily_reboot
+
   chmod 644 /root/.profile /etc/cron.d/* 2>/dev/null || true
+
   grep -q "/bin/false" /etc/shells || echo "/bin/false" >> /etc/shells
   grep -q "/usr/sbin/nologin" /etc/shells || echo "/usr/sbin/nologin" >> /etc/shells
 
@@ -643,8 +641,11 @@ iptables -t nat -I PREROUTING -p udp --dport 53 -j REDIRECT --to-ports 5300 2>/d
 systemctl restart netfilter-persistent 2>/dev/null || true
 exit 0
 EOF
+
   chmod +x /etc/rc.local
+
   systemctl restart cron || true
+
   print_success "Profile dan cron"
 }
 
