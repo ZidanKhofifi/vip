@@ -157,3 +157,9 @@ def delete_vless(data: UsernameOnly, x_api_key: str | None = Header(default=None
 def xray_online(x_api_key: str | None = Header(default=None)):
     check_token(x_api_key)
     return run_cmd(["cek-xray-api"])
+
+
+@app.get("/xray/member")
+def xray_member(x_api_key: str | None = Header(default=None)):
+    check_token(x_api_key)
+    return run_cmd(["member-xray-api"])
