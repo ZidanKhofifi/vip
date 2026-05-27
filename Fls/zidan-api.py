@@ -111,17 +111,17 @@ def delete_expired(x_api_key: str | None = Header(default=None)):
     check_token(x_api_key)
     return run_cmd(["delexp-api"])
 
-  @app.post("/xray/trial/vmess")
+@app.post("/xray/trial/vmess")
 def trial_vmess(data: TrialXray, x_api_key: str | None = Header(default=None)):
     check_token(x_api_key)
     return run_cmd(["trial-vme-api", str(data.minutes)])
 
-  @app.post("/xray/trial/vless")
+@app.post("/xray/trial/vless")
 def trial_vless(data: TrialXray, x_api_key: str | None = Header(default=None)):
     check_token(x_api_key)
     return run_cmd(["trial-vle-api", str(data.minutes)])
 
-  @app.post("/xray/create/vmess")
+@app.post("/xray/create/vmess")
 def create_vmess(data: CreateXray, x_api_key: str | None = Header(default=None)):
     check_token(x_api_key)
     return run_cmd([
