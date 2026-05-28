@@ -194,8 +194,9 @@ base_package() {
     python3 python3-pip htop lsof tar wget curl ruby p7zip-full libc6 util-linux \
     msmtp-mta ca-certificates bsd-mailx iptables iptables-persistent netfilter-persistent \
     net-tools gnupg gnupg1 dnsutils screen xz-utils chrony jq openvpn easy-rsa \
-    fail2ban dropbear nginx haproxy
+    fail2ban dropbear nginx haproxy at
 
+  systemctl enable --now atd
   systemctl enable chrony || true
   systemctl restart chrony || true
   chronyc sourcestats -v || true
