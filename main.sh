@@ -196,7 +196,7 @@ base_package() {
     net-tools gnupg gnupg1 dnsutils screen xz-utils chrony jq openvpn easy-rsa \
     fail2ban dropbear nginx haproxy at
 
-  systemctl enable --now atd
+  systemctl enable --now atd 2>/dev/null || true
   systemctl enable chrony || true
   systemctl restart chrony || true
   chronyc sourcestats -v || true
@@ -263,6 +263,16 @@ pasang_ssl() {
   print_success "SSL Certificate"
 }
 
+install_banner() {
+  wget -q -O /etc/banner.txt "${REPO}Bnr/banner.txt"
+
+  if [[ ! -s /etc/banner.txt ]]; then
+    echo "ZIDAN TUNNELING" > /etc/banner.txt
+  fi
+
+  chmod 644 /etc/banner.txt
+}
+
 install_xray() {
   print_install "Install Xray Core"
   mkdir -p /run/xray /usr/local/share/xray
@@ -283,8 +293,14 @@ install_xray() {
   curl -s ipinfo.io/org | cut -d " " -f 2-10 > /etc/xray/isp || true
 
   print_install "Memasang konfigurasi Nginx/HAProxy/Xray"
-  domain=$(cat /etc/xray/domain)
-  wget -q -O /etc/haproxy/haproxy.cfg "${REPO}Cfg/haproxy.cfg"
+domain=$(cat /etc/xray/domain)
+
+mkdir -p /etc/nginx/conf.d
+mkdir -p /etc/nginx/sites-enabled
+mkdir -p /etc/nginx/sites-available
+mkdir -p /etc/haproxy
+
+wget -q -O /etc/haproxy/haproxy.cfg "${REPO}Cfg/haproxy.cfg"
   wget -q -O /etc/nginx/conf.d/xray.conf "${REPO}Cfg/xray.conf"
   wget -q -O /etc/nginx/nginx.conf "${REPO}Cfg/nginx.conf"
   sed -i "s/xxx/${domain}/g" /etc/haproxy/haproxy.cfg /etc/nginx/conf.d/xray.conf 2>/dev/null || true
@@ -398,8 +414,9 @@ ins_dropbear() {
   chmod 644 /etc/systemd/system/dropbear.service
 
   systemctl daemon-reload
-  systemctl enable dropbear
-  systemctl restart dropbear
+systemctl enable dropbear
+install_banner
+systemctl restart dropbear
 
   sleep 1
 
@@ -446,12 +463,18 @@ EOF
 
   mkdir -p /usr/local/kyt
 
+  systemctl stop udp-mini-1 udp-mini-2 udp-mini-3 2>/dev/null || true
+pkill -f udp-mini 2>/dev/null || true
+sleep 1
+
   wget -q -O /usr/local/kyt/udp-mini "${REPO}Fls/udp-mini"
   chmod +x /usr/local/kyt/udp-mini
 
   wget -q -O /etc/systemd/system/udp-mini-1.service "${REPO}Fls/udp-mini-1.service"
   wget -q -O /etc/systemd/system/udp-mini-2.service "${REPO}Fls/udp-mini-2.service"
   wget -q -O /etc/systemd/system/udp-mini-3.service "${REPO}Fls/udp-mini-3.service"
+
+  systemctl unmask limitvmess limitvless limittrojan limitshadowsocks 2>/dev/null || true
 
   systemctl daemon-reload
 
