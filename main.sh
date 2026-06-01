@@ -415,7 +415,6 @@ ins_dropbear() {
 
   systemctl daemon-reload
 systemctl enable dropbear
-install_banner
 systemctl restart dropbear
 
   sleep 1
@@ -721,6 +720,7 @@ install_all() {
   base_package
   pasang_domain
   pasang_ssl
+  install_banner
   install_xray
   ssh_config
   udp_mini
