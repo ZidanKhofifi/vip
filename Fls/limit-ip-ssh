@@ -1,12 +1,15 @@
 #!/bin/bash
 
 LOCK_TTL=60
+TMP_LOGIN="/tmp/cek_ssh_login.txt"
 
 send_log() {
     CHATID=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 3)
     KEY=$(grep -E "^#bot# " "/etc/bot/.bot.db" | cut -d ' ' -f 2)
     TIME="10"
     URL="https://api.telegram.org/bot$KEY/sendMessage"
+
+    [[ -z "$CHATID" || -z "$KEY" ]] && return
 
     TEXT="
 <code>────────────────────</code>
@@ -21,7 +24,7 @@ send_log() {
 
     curl -s --max-time "$TIME" \
       -d "chat_id=$CHATID&disable_web_page_preview=1&text=$TEXT&parse_mode=html" \
-      "$URL" >/dev/null
+      "$URL" >/dev/null 2>&1
 }
 
 send_wa_gateway() {
@@ -29,13 +32,13 @@ send_wa_gateway() {
     WA_TARGET=$(cat /etc/bot/.wa_target 2>/dev/null)
     API_KEY=$(cat /etc/bot/.api_key 2>/dev/null)
 
+    [[ -z "$WA_API" || -z "$WA_TARGET" || -z "$API_KEY" ]] && return
+
     MESSAGE="⚠️ MULTI LOGIN SSH DETECTED
 Username: $user
 Limit IP: $iplimit
 User Login: $cekcek
 Status: Multi Login Detected"
-
-    [[ -z "$WA_API" || -z "$WA_TARGET" || -z "$API_KEY" ]] && return
 
     JSON=$(jq -n \
       --arg to "$WA_TARGET" \
@@ -46,17 +49,7 @@ Status: Multi Login Detected"
       -X POST "$WA_API" \
       -H "Content-Type: application/json" \
       -H "x-api-key: $API_KEY" \
-      -d "$JSON" >/dev/null
-}
-
-count_login() {
-    local username="$1"
-
-    cek-ssh | awk -F' - ' -v u="$username" '
-    {
-        gsub(/\047/, "", $2)
-        if ($2 == u) print $1
-    }' | sort -u | wc -l
+      -d "$JSON" >/dev/null 2>&1
 }
 
 lock_expired() {
@@ -82,13 +75,46 @@ lock_expired() {
     return 1
 }
 
-data=( $(ls /etc/kyt/limit/ssh/ip 2>/dev/null) )
+count_login_from_file() {
+    local username="$1"
 
-for user in "${data[@]}"; do
-    iplimit=$(cat "/etc/kyt/limit/ssh/ip/$user" 2>/dev/null || echo 0)
+    awk -F' - ' -v u="$username" '
+    {
+        gsub(/\047/, "", $2)
+        if ($2 == u) print $1
+    }' "$TMP_LOGIN" | sort -u | wc -l
+}
+
+# Anti double-run
+LOCK_RUN="/tmp/limit-ip-ssh-running.lock"
+
+if [[ -f "$LOCK_RUN" ]]; then
+    oldpid=$(cat "$LOCK_RUN" 2>/dev/null)
+    if [[ -n "$oldpid" ]] && kill -0 "$oldpid" 2>/dev/null; then
+        exit 0
+    fi
+fi
+
+echo $$ > "$LOCK_RUN"
+trap 'rm -f "$LOCK_RUN" "$TMP_LOGIN"' EXIT
+
+# Jalankan cek-ssh cukup 1x
+timeout 20 cek-ssh-limit > "$TMP_LOGIN" 2>/dev/null
+
+if [[ ! -s "$TMP_LOGIN" ]]; then
+    exit 0
+fi
+
+for file in /etc/kyt/limit/ssh/ip/*; do
+    [[ -f "$file" ]] || continue
+
+    user=$(basename "$file")
+    iplimit=$(cat "$file" 2>/dev/null || echo 0)
     LOCK_FILE="/tmp/limitssh_${user}.lock"
 
-    cekcek=$(count_login "$user")
+    [[ "$iplimit" =~ ^[0-9]+$ ]] || iplimit=0
+
+    cekcek=$(count_login_from_file "$user")
 
     if [[ "$iplimit" -gt 0 && "$cekcek" -gt "$iplimit" ]]; then
         if lock_expired "$LOCK_FILE"; then
@@ -97,8 +123,6 @@ for user in "${data[@]}"; do
             touch "$LOCK_FILE"
         fi
     fi
-
-    sleep 0.1
 done
 
 exit 0

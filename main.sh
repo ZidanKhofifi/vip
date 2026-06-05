@@ -455,21 +455,7 @@ udp_mini() {
   chmod +x /usr/bin/limit-ip /usr/bin/limit-ip-ssh 2>/dev/null || true
   sed -i 's/\r//' /usr/bin/limit-ip /usr/bin/limit-ip-ssh 2>/dev/null || true
 
-  cat >/etc/systemd/system/sship.service <<'EOF'
-[Unit]
-Description=Limit SSH IP
-After=network.target
-
-[Service]
-ExecStart=/usr/bin/limit-ip-ssh
-Restart=always
-RestartSec=3
-StartLimitIntervalSec=60
-StartLimitBurst=5
-
-[Install]
-WantedBy=multi-user.target
-EOF
+  
 
   for svc in vmip vlip trip; do
     cat >/etc/systemd/system/${svc}.service <<EOF
@@ -503,7 +489,7 @@ EOF
   systemctl unmask limitvmess limitvless limittrojan limitshadowsocks 2>/dev/null || true
   systemctl daemon-reload
 
-  for svc in sship vmip vlip trip udp-mini-1 udp-mini-2 udp-mini-3; do
+  for svc in vmip vlip trip udp-mini-1 udp-mini-2 udp-mini-3; do
     systemctl enable --now "$svc" 2>/dev/null || true
   done
 
@@ -657,6 +643,9 @@ menu_install() {
   chmod +x /usr/local/sbin/* 2>/dev/null || true
   rm -rf menu menu.zip
 
+  ln -sf /usr/local/sbin/cek-ssh-limit /usr/bin/cek-ssh-limit
+chmod +x /usr/local/sbin/cek-ssh-limit /usr/bin/cek-ssh-limit 2>/dev/null || true
+
   print_success "Menu Packet"
 }
 
@@ -691,7 +680,7 @@ EOF
   cat >/etc/cron.d/limssh <<'EOF'
 SHELL=/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-* * * * * root /usr/bin/limit-ip-ssh
+* * * * * root flock -n /tmp/limit-ip-ssh.lock /usr/bin/limit-ip-ssh
 EOF
 
   cat >/etc/cron.d/limxry <<'EOF'
@@ -738,7 +727,7 @@ enable_services() {
 
   systemctl daemon-reload
 
-  for svc in rc-local cron netfilter-persistent nginx xray dropbear openvpn haproxy ws fail2ban atd sship vmip vlip trip udp-mini-1 udp-mini-2 udp-mini-3; do
+  for svc in rc-local cron netfilter-persistent nginx xray dropbear openvpn haproxy ws fail2ban atd vmip vlip trip udp-mini-1 udp-mini-2 udp-mini-3; do
     systemctl enable --now "$svc" 2>/dev/null || true
   done
 
