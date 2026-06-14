@@ -607,14 +607,18 @@ ins_epro() {
 install_http_api() {
   print_install "Menginstall HTTP API"
 
-  apt install -y python3-pip
+  apt install -y python3-pip jq at
   pip3 install fastapi uvicorn
 
   safe_wget "${REPO}Fls/zidan-api.py" /usr/local/sbin/zidan-api.py || true
   safe_wget "${REPO}Fls/zidan-api.service" /etc/systemd/system/zidan-api.service || true
 
- chmod +x /usr/local/sbin/zidan-api.py 2>/dev/null || true
+  chmod +x /usr/local/sbin/*-api 2>/dev/null || true
+  dos2unix /usr/local/sbin/*-api 2>/dev/null || true
+  chmod +x /usr/local/sbin/zidan-api.py 2>/dev/null || true
   dos2unix /usr/local/sbin/zidan-api.py 2>/dev/null || true
+
+  systemctl enable --now atd 2>/dev/null || true
 
   systemctl daemon-reload
   systemctl enable zidan-api 2>/dev/null || true
