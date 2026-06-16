@@ -348,3 +348,28 @@ def member_xray(x_api_key: str | None = Header(default=None)):
 def online_xray(x_api_key: str | None = Header(default=None)):
     check_token(x_api_key)
     return run_cmd(["cek-xray-api"])
+
+@app.get("/ssh/limit")
+def ssh_limit(x_api_key: str = Header(None)):
+    check_api_key(x_api_key)
+
+    result = subprocess.run(
+        ["/usr/local/sbin/ceklim-api"],
+        capture_output=True,
+        text=True
+    )
+
+    if result.returncode != 0:
+        return {
+            "status": "error",
+            "message": result.stderr or result.stdout or "failed to check ssh limit"
+        }
+
+    try:
+        return json.loads(result.stdout)
+    except Exception:
+        return {
+            "status": "error",
+            "message": "invalid json response",
+            "raw": result.stdout
+        }
